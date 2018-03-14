@@ -4,66 +4,64 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 clear all
-use "http://caucasusbarometer.org/downloads/CB_2017_Regional_Only_Responses_22.02.18.dta" 
-
-keep if COUNTRY == 3
+use "CB_2017_Georgia_17.11.17.dta" 
 
 // recode variables
 
 ** Went to a restaurant?
-recode ACTREST (0=0)(1=1)(else=.), gen(restau)
+recode q1_05 (0=0)(1=1)(else=.), gen(restau)
 lab var restau "Went to a restaurant?"
 
 ** stratum
-recode STRATUM(1=3)(2=2)(3=1), gen(stra)
+recode stratum(1=3)(2=2)(3=1), gen(stra)
 lab var stra "Settlement type"
 
 ** gender
-recode RESPSEX (1=1)(2=2), gen(female)
+recode sex (1=1)(2=2), gen(female)
 lab var female "Respondent's gender"
 lab define gender 1 "Male" 2 "Female"
 lab values female gender
 
 ** age groups
-recode AGE (18/37=3)(38/57=2)(58/100=1), gen(agegr20)
+recode age (18/37=3)(38/57=2)(58/100=1), gen(agegr20)
 lab var agegr20 "Age groups {1=58/100}"
 
 ** education
-recode RESPEDU (1/4=1)(5=2)(6/8=3)(else=.), gen(persedu)
+recode d3 (1/4=1)(5=2)(6/8=3)(else=.), gen(persedu)
 lab var persedu "Highest level of education achieved"
 
-gen edu=EDUYRS
+gen edu=d2
 mvdecode edu, mv(-9/-1)
 lab var edu "Education in years"
 
-recode RFAEDUC (1/5=0)(6/8=1)(else=.), gen(rfaedu)
-recode RMOEDUC (1/5=0)(6/8=1)(else=.), gen(rmoedu)
+recode d4 (1/5=0)(6/8=1)(else=.), gen(rfaedu)
+recode d5 (1/5=0)(6/8=1)(else=.), gen(rmoedu)
 gen paredu=.
 replace paredu=2 if rfaedu==1|rmoedu==1
 replace paredu=1 if rfaedu==0&rmoedu==0
 lab var paredu "Any parent with higher education?"
 
 ** employment
-recode EMPLSIT (1/4=0)(7/8=0)(5/6=1)(else=.), gen(emplsit)
+recode j1 (1/4=0)(7/8=0)(5/6=1)(else=.), gen(emplsit)
 lab var emplsit "Employed?"
 
 gen empl=.
 replace empl=3 if emplsit==1
-replace empl=2 if emplsit==0&INTSTJOB==1&JOBSTART==1
-replace empl=1 if emplsit==0&(INTSTJOB==-2|INTSTJOB==-1|INTSTJOB==0|JOBSTART==-2|JOBSTART==-1|JOBSTART==0)
+replace empl=2 if emplsit==0&j3==1&j5==1
+replace empl=1 if emplsit==0&(j3==-2|j3==-1|j3==0|j5==-2|j5==-1|j5==0)
 lab var empl "Employment status"
 
 ** Current HH rung
-gen currung10=CURRUNG
-replace currung10=. if CURRUNG==-9|CURRUNG==-3|CURRUNG==-2|CURRUNG==-1
-recode CURRUNG (1/4=1)(5/6=2)(7/10=3)(else=.), gen(currung)
+gen currung10=c10
+replace currung10=. if c10==-9|c10==-3|c10==-2|c10==-1
+recode c10 (1/4=1)(5/6=2)(7/10=3)(else=.), gen(currung)
 lab var currung "Current HH rung"
 lab var currung10 "Current HH rung"
 
 ** income and expenditure
-recode MONYTOT(-2/-1=1)(5/8=2)(4=3)(1/3=4)(else=.), gen(monytot)
-recode SPENDMO(-2/-1=1)(5/8=2)(4=3)(1/3=4)(else=.), gen(spendmo)
-recode PERSINC(-2/-1=1)(5/8=2)(4=3)(1/3=4)(else=.), gen(persinc)
+recode c6(-2/-1=1)(5/8=2)(4=3)(1/3=4)(else=.), gen(monytot)
+recode c7(-2/-1=1)(5/8=2)(4=3)(1/3=4)(else=.), gen(spendmo)
+recode j11(-2/-1=1)(5/8=2)(4=3)(1/3=4)(else=.), gen(persinc)
 lab var persinc "Personal income"
 lab var monytot "HH income"
 lab var spendmo	"HH spending"
@@ -77,11 +75,11 @@ lab val persinc mony
 graph set window fontface "Times New Roman"
 
 ** survey settings
-svyset PSU [pweight=INDWT], strata(SUBSTRATUM) fpc(NPSUSS) singleunit(certainty) || ID, fpc(NHHPSU) || _n, fpc(NADHH)
+svyset psu [pweight=indwt], strata(substratum) fpc(npsuss) singleunit(certainty) || id, fpc(nhhpsu) || _n, fpc(nadhh)
 
 *** Graph 2. Marginal effects of logit estimates
 
-svyset PSU [pweight=INDWT], strata(SUBSTRATUM) fpc(NPSUSS) singleunit(certainty) || ID, fpc(NHHPSU) || _n, fpc(NADHH)
+svyset psu [pweight=indwt], strata(substratum) fpc(npsuss) singleunit(certainty) || id, fpc(nhhpsu) || _n, fpc(nadhh)
 
 qui: svy: logit restau i.stra i.female i.empl c.age c.edu c.currung10 i.spendmo, or
 qui: margins, dydx(*) post
@@ -210,7 +208,7 @@ graph export "Graph_5.png", width(3000) replace
 
 // Interactions with gender
 
-svyset PSU [pweight=INDWT], strata(SUBSTRATUM) fpc(NPSUSS) singleunit(certainty) || ID, fpc(NHHPSU) || _n, fpc(NADHH)
+svyset psu [pweight=indwt], strata(substratum) fpc(npsuss) singleunit(certainty) || id, fpc(nhhpsu) || _n, fpc(nadhh)
 
 svy: logit restau i.stra##i.female i.empl c.age c.edu c.currung10 i.spendmo, or
 svy: logit restau i.stra i.empl##i.female c.age c.edu c.currung10 i.spendmo, or
